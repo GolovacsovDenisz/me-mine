@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "253421766749",
+    "project_id": "me-mine-99e66",
+    "storage_bucket": "me-mine-99e66.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:253421766749:android:8a541915cb1cbf785aa5b4",
+        "android_client_info": {
+          "package_name": "com.example.me_mine"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBPNyfZjcQXkak-_rO7uYnZbsPk0RTCHfI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

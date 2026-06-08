@@ -41,20 +41,24 @@ The app offers users the experience of a traditional journal, but in a new, more
 
 The app follows a feature-first structure with shared core modules:
 
+```text
 lib/
   core/        theme, routing helpers, formatting, navigation keys
   features/    auth, home, calendar, analytics, security, settings
   models/      serializable domain models
   shared/      reusable UI and attachment components
 functions/     Firebase Cloud Functions for AI analysis
+```
 
 Main data flow:
 
+```text
 Flutter UI
   -> Riverpod providers
   -> Repository / service layer
   -> Local SQLite store
   -> Firebase Auth / Firestore / Storage / Functions
+```
 
 ## Why This Stack
 
@@ -64,12 +68,13 @@ Flutter UI
 - **SQLite** At first, I used Shared Preferences, but then I needed to retrieve records based on a date range and sync_status, so I quickly switched to this solution
 - **CloudFunction** I did this so that the AI API key would be stored as a Firebase Secret rather than within the app, and for the sake of flexibility, because this allows me to limit the frequency of key generation, centralize business logic on the server, and so on.
 
+## Security & Privacy
+
+- Gemini API key is stored as a Firebase Functions secret and is never included in the Flutter client.
+- Firebase Auth is used to scope user data under `users/{uid}`.
+- Journal entries, attachments, and AI summaries are stored per authenticated user.
+- Optional app passcode is stored as a SHA-256 hash in secure storage, not as plaintext.
+- Firebase client config files are included intentionally; production API keys should be restricted in Google Cloud.
 
 
-## Security note
 
-Firebase **client** API keys in this repo are expected for mobile apps. Restrict them in Google Cloud (package name / bundle ID). **Do not** commit `.env` or Gemini keys; production AI runs only in Cloud Functions.
-
-## License
-
-Private / portfolio — add a license if you open-source (e.g. MIT).

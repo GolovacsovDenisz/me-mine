@@ -6,7 +6,7 @@ A Flutter personal journal focused on daily reflection, offline-first entry edit
 
 ## Demo
 
-[Watch demo on YouTube](https://www.youtube.com/watch?v=REPLACE_WITH_YOUR_VIDEO_ID)
+[Watch demo on YouTube](https://youtube.com/shorts/8Etaq4D1LnI?feature=share)
 
 ## Screenshots
 

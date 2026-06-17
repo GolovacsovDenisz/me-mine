@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:me_mine/features/home/music_attachment_utils.dart';
+import 'package:me_mine/features/journal/domain/utils/music_attachment_utils.dart';
 
 void main() {
   group('extractYoutubeVideoId', () {

@@ -1,6 +1,6 @@
 import 'package:geocoding/geocoding.dart';
 
-import '../../models/entry.dart';
+import 'package:me_mine/features/journal/domain/entities/entry.dart';
 
 /// Reverse-geocode coordinates into a short street / area label.
 Future<String?> resolvePlaceLabel({

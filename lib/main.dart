@@ -7,8 +7,8 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'app.dart';
 import 'core/formatting/journal_date_format.dart';
-import 'features/notifications/journal_reminder_bootstrap.dart';
-import 'features/notifications/journal_reminder_service.dart';
+import 'features/notifications/presentation/journal_reminder_bootstrap.dart';
+import 'features/notifications/data/services/journal_reminder_service.dart';
 import 'firebase_options.dart';
 
 Future<void> _configureLocalTimeZone() async {

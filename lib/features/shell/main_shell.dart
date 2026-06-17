@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../analytics/analytics_screen.dart';
-import '../calendar/calendar_screen.dart';
-import '../home/home_screen.dart';
-import '../security/passcode_prefs.dart';
-import '../security/passcode_unlock_screen.dart';
+import '../analytics/presentation/screens/analytics_screen.dart';
+import '../calendar/presentation/screens/calendar_screen.dart';
+import '../journal/presentation/screens/home_screen.dart';
+import '../security/data/datasources/passcode_prefs.dart';
+import '../security/presentation/screens/passcode_unlock_screen.dart';
 import '../../shared/app_motion_widgets.dart';
-import '../settings/settings_screen.dart';
+import '../settings/presentation/screens/settings_screen.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});

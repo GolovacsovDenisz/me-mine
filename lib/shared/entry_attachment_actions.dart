@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../features/home/music_attachment_utils.dart';
+import '../features/journal/domain/utils/music_attachment_utils.dart';
 
 enum EntryPhotoSource { gallery, camera }
 

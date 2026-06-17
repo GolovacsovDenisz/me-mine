@@ -6,7 +6,7 @@ import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../core/location/place_label.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/app_shape.dart';
-import '../models/entry.dart';
+import 'package:me_mine/features/journal/domain/entities/entry.dart';
 import 'entry_local_image_stub.dart'
     if (dart.library.io) 'entry_local_image_io.dart';
 

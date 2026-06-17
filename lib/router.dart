@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import 'core/feature_flags.dart';
 import 'core/navigation_keys.dart';
-import 'features/auth/auth_providers.dart';
-import 'features/auth/login_screen.dart';
-import 'features/onboarding/onboarding_screen.dart';
+import 'features/auth/presentation/providers/auth_providers.dart';
+import 'features/auth/presentation/screens/login_screen.dart';
+import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/shell/main_shell.dart';
 
 class _RouterRefreshNotifier extends ChangeNotifier {

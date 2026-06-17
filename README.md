@@ -1,7 +1,7 @@
 
 # Me Mine
 
-A Flutter personal journal focused on daily reflection, offline-first entry editing, mood analytics, private attachments,server-side AI period summaries and clear separation between UI, state, repositories, and services
+A Flutter personal journal focused on daily reflection, offline-first entry editing, mood analytics, private attachments, and server-side AI period summaries — built with **feature-first Clean Architecture** (domain / data / presentation).
 
 
 ## Demo
@@ -20,15 +20,16 @@ A Flutter personal journal focused on daily reflection, offline-first entry edit
 
 ## What It Does
 
-The app offers users the experience of a traditional journal, but in a new, more modern, and user-friendly format. It allows users to make entries and attach details about what happened to them that day, such as photos, geolocation, music, and more. You can then review and track your emotional patterns and changes through the calendar and AI-generated features. You can fine-tune the AI’s behavior and tone of response yourself
+The app offers users the experience of a traditional journal, but in a new, more modern, and user-friendly format. It allows users to make entries and attach details about what happened to them that day, such as photos, geolocation, music, and more. You can then review and track your emotional patterns and changes through the calendar and AI-generated features. You can fine-tune the AI’s behavior and tone of response yourself.
 
 - Daily entry with text, 1–5 mood rating, photos, files, location and music
 - Calendar view with visual highlights for entries and attachments
 - AI period summaries and mood analytics generated from real entries and saved per user
-- Optional reminders, passcode, bio,etric unlock etc
+- Optional reminders, passcode, biometric unlock, etc.
 
-## Engineering Highlights
+## Engineering Highlightsa
 
+- Clean Architecture: each feature is split into `domain`, `data`, and `presentation` layers; business rules stay framework-agnostic
 - Local-first entry flow: journal data is written to SQLite first, then synchronized with Firestore in the background
 - Separation of Concerns: UI doesn’t talk directrly; screens use Riverpod providers and repositories
 - Server-side AI: Gemini is called exclusively from Firebase Cloud Functions, so the API key never makes its way into the app
@@ -39,25 +40,54 @@ The app offers users the experience of a traditional journal, but in a new, more
 
 ## Architecture
 
-The app follows a feature-first structure with shared core modules:
+The project uses **feature-first Clean Architecture**. Each feature owns its layers; shared infrastructure lives in `core/` and reusable UI in `shared/`.
 
 ```text
 lib/
-  core/        theme, routing helpers, formatting, navigation keys
-  features/    auth, home, calendar, analytics, security, settings
-  models/      serializable domain models
-  shared/      reusable UI and attachment components
-functions/     Firebase Cloud Functions for AI analysis
+  core/                         # theme, routing, formatting, Firebase DI
+  shared/                       # reusable UI and attachment components
+  features/
+    auth/
+      domain/                   # entities, value objects, AuthRepository contract
+      data/                     # Firebase Auth impl, Firestore mappers
+      presentation/             # login screen, Riverpod providers
+    journal/
+      domain/                   # Entry entity, JournalDateUtils, EntriesRepository
+      data/                     # SQLite store, Firestore/Storage sync, EntryMapper
+      presentation/             # home & past-entry screens, providers
+    calendar/
+      domain/                   # calendar entry helpers
+      presentation/             # calendar & day-detail screens
+    analytics/
+      domain/                   # PeriodAnalysis, period utils, AiService contract
+      data/                     # Firestore repos, Cloud Function AI client
+      presentation/             # charts & AI summary screens
+    settings/                   # presentation (theme, account, AI instructions)
+    security/                   # domain (passcode hash), data (secure storage)
+    notifications/              # data (reminder prefs/service), presentation
+    onboarding/                 # domain constants, onboarding screen
+functions/                      # Firebase Cloud Functions for AI analysis
 ```
 
-Main data flow:
+### Layer responsibilities
+
+| Layer | Role | Examples in this app |
+|-------|------|----------------------|
+| **Domain** | Business rules, entities, repository interfaces — no Flutter/Firebase | `PasswordPolicy`, `Entry`, `JournalDateUtils`, `AiService` |
+| **Data** | Implements domain contracts; talks to SQLite, Firestore, Storage, Functions | `EntriesRepositoryImpl`, `LocalEntriesStore`, `EntryMapper` |
+| **Presentation** | UI, Riverpod state, user input | `HomeScreen`, `authStateProvider`, `entriesRepositoryProvider` |
+
+### Dependency rule
+
+Dependencies point **inward**: presentation → domain ← data. The UI never imports Firestore or SQLite directly; it goes through repository interfaces injected via Riverpod.
+
+### Data flow
 
 ```text
-Flutter UI
-  -> Riverpod providers
-  -> Repository / service layer
-  -> Local SQLite store
-  -> Firebase Auth / Firestore / Storage / Functions
+Presentation (screens, Riverpod providers)
+  -> Domain (repository interfaces, pure utils)
+  -> Data (repository impls, datasources, mappers)
+  -> Local SQLite  +  Firebase Auth / Firestore / Storage / Functions
 ```
 
 ## Why This Stack
@@ -76,5 +106,11 @@ Flutter UI
 - Optional app passcode is stored as a SHA-256 hash in secure storage, not as plaintext.
 - Firebase client config files are included intentionally; production API keys should be restricted in Google Cloud.
 
+## Tests
 
+```bash
+flutter test
+```
+
+Unit tests cover domain-layer pure logic: password policy, email validation, journal date IDs, calendar helpers, analytics aggregation, period ranges, YouTube URL parsing, and passcode hashing.
 

@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Local notifications (Phase 7). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 

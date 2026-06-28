@@ -31,6 +31,11 @@ DateTime? _tryParseDateId(String dateId) {
 }
 
 String _safeLocale(String? locale) {
+  return resolveJournalLocale(locale);
+}
+
+/// Locale string for [DateFormat] (system language: `ru` or `en_GB`).
+String resolveJournalLocale([String? locale]) {
   final loc = locale ?? journalDisplayLocale();
   if (loc == 'ru') return 'ru';
   return 'en_GB';

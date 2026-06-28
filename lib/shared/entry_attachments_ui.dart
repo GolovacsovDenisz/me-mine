@@ -155,13 +155,13 @@ class EntryPhotoCarousel extends StatefulWidget {
 }
 
 class _EntryPhotoCarouselState extends State<EntryPhotoCarousel> {
-  late final PageController _controller;
+  late final ScrollController _scrollController;
   int _index = 0;
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController();
+    _scrollController = ScrollController()..addListener(_onScroll);
   }
 
   @override
@@ -171,14 +171,38 @@ class _EntryPhotoCarouselState extends State<EntryPhotoCarousel> {
     if (n == 0) return;
     if (_index >= n) {
       _index = n - 1;
-      _controller.jumpToPage(_index);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) return;
+        _scrollController.jumpTo(_pageOffset(_index));
+      });
     }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  double _itemStride(double itemWidth) => itemWidth + 8;
+
+  double _pageOffset(int index) {
+    if (!_scrollController.hasClients) return 0;
+    final w = _scrollController.position.viewportDimension;
+    return index * _itemStride(w);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final w = _scrollController.position.viewportDimension;
+    if (w <= 0) return;
+    final stride = _itemStride(w);
+    final i = (_scrollController.offset / stride).round().clamp(
+      0,
+      widget.imageUrls.length - 1,
+    );
+    if (i != _index) setState(() => _index = i);
   }
 
   void _openFullscreen() {
@@ -199,40 +223,53 @@ class _EntryPhotoCarouselState extends State<EntryPhotoCarousel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClipRRect(
-          borderRadius: AppShape.radiusLg,
-          child: AspectRatio(
-            aspectRatio: 4 / 3,
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: n,
-              onPageChanged: (i) => setState(() => _index = i),
-              itemBuilder: (context, index) {
-                final url = widget.imageUrls[index];
-                return GestureDetector(
-                  onTap: _openFullscreen,
-                  onLongPress: widget.onPhotoLongPress == null
-                      ? null
-                      : () {
-                          HapticFeedback.mediumImpact();
-                          widget.onPhotoLongPress!(index);
-                        },
-                  child: EntryImage(
-                    source: url,
-                    fit: BoxFit.cover,
-                    errorWidget: ColoredBox(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      child: const Center(
-                        child: Icon(Icons.broken_image, size: 48),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final itemWidth = constraints.maxWidth;
+            final height = itemWidth * 3 / 4;
+            return SizedBox(
+              height: height,
+              child: ListView.separated(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: n,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final url = widget.imageUrls[index];
+                  return SizedBox(
+                    width: itemWidth,
+                    child: ClipRRect(
+                      borderRadius: AppShape.radiusLg,
+                      child: GestureDetector(
+                        onTap: _openFullscreen,
+                        onLongPress: widget.onPhotoLongPress == null
+                            ? null
+                            : () {
+                                HapticFeedback.mediumImpact();
+                                widget.onPhotoLongPress!(index);
+                              },
+                        child: EntryImage(
+                          source: url,
+                          fit: BoxFit.cover,
+                          width: itemWidth,
+                          height: height,
+                          errorWidget: ColoredBox(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.surfaceContainerHighest,
+                            child: const Center(
+                              child: Icon(Icons.broken_image, size: 48),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
+                  );
+                },
+              ),
+            );
+          },
         ),
         if (n > 1) ...[
           const SizedBox(height: 8),
@@ -431,7 +468,7 @@ class EntryFileRow extends StatelessWidget {
   }
 }
 
-class EntryLocationChip extends StatelessWidget {
+class EntryLocationChip extends StatefulWidget {
   const EntryLocationChip({
     super.key,
     required this.location,
@@ -440,6 +477,50 @@ class EntryLocationChip extends StatelessWidget {
 
   final EntryLocation location;
   final VoidCallback? onLongPress;
+
+  @override
+  State<EntryLocationChip> createState() => _EntryLocationChipState();
+}
+
+class _EntryLocationChipState extends State<EntryLocationChip> {
+  String? _resolvedLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveMissingLabel();
+  }
+
+  @override
+  void didUpdateWidget(covariant EntryLocationChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location.lat != widget.location.lat ||
+        oldWidget.location.lng != widget.location.lng ||
+        oldWidget.location.placeLabel != widget.location.placeLabel) {
+      _resolvedLabel = null;
+      _resolveMissingLabel();
+    }
+  }
+
+  Future<void> _resolveMissingLabel() async {
+    final existing = widget.location.placeLabel?.trim();
+    if (existing != null && existing.isNotEmpty) return;
+
+    final resolved = await resolvePlaceLabel(
+      lat: widget.location.lat,
+      lng: widget.location.lng,
+    );
+    if (!mounted || resolved == null) return;
+    setState(() => _resolvedLabel = resolved);
+  }
+
+  String get _label {
+    final stored = widget.location.placeLabel?.trim();
+    if (stored != null && stored.isNotEmpty) return stored;
+    final resolved = _resolvedLabel?.trim();
+    if (resolved != null && resolved.isNotEmpty) return resolved;
+    return displayPlaceLabel(widget.location);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -454,17 +535,17 @@ class EntryLocationChip extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: Text(
-            displayPlaceLabel(location),
+            _label,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
       ],
     );
-    if (onLongPress == null) return row;
+    if (widget.onLongPress == null) return row;
     return GestureDetector(
       onLongPress: () {
         HapticFeedback.mediumImpact();
-        onLongPress!();
+        widget.onLongPress!();
       },
       behavior: HitTestBehavior.opaque,
       child: row,

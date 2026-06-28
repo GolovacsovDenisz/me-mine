@@ -428,10 +428,12 @@ class EntriesRepositoryImpl implements EntriesRepository {
     if (user == null) throw StateError('Not signed in');
 
     final id = JournalDateUtils.dateId(date);
+    final placeLabel = await resolvePlaceLabel(lat: lat, lng: lng);
     final location = EntryLocation(
       lat: lat,
       lng: lng,
       accuracyMeters: accuracyMeters,
+      placeLabel: placeLabel,
     );
 
     final entry = await _localEntryOrEmpty(uid: user.uid, dateId: id);
@@ -444,9 +446,7 @@ class EntriesRepositoryImpl implements EntriesRepository {
       entry: updated,
       syncStatus: entrySyncPending,
     );
-    unawaited(
-      _syncLocationWithLabel(uid: user.uid, dateId: id, location: location),
-    );
+    unawaited(_syncEntryToRemote(uid: user.uid, entry: updated));
 
     return location;
   }

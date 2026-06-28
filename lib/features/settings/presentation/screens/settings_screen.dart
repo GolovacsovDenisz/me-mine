@@ -5,7 +5,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/di/firebase_providers.dart';
 import '../../../../core/navigation/app_page_routes.dart';
 import '../../../../shared/app_dialogs.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../notifications/data/datasources/journal_reminder_prefs.dart';
 import '../../../notifications/data/services/journal_reminder_service.dart';
 import '../../../security/data/datasources/passcode_prefs.dart';

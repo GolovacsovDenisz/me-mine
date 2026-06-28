@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,56 +9,28 @@ import '../../../../shared/ui_feedback.dart';
 import '../../../journal/presentation/providers/entries_providers.dart';
 import '../../../journal/presentation/screens/past_entry_edit_screen.dart';
 
-class DayDetailsScreen extends ConsumerStatefulWidget {
+class DayDetailsScreen extends ConsumerWidget {
   const DayDetailsScreen({super.key, required this.dateId});
 
   final String dateId;
 
-  @override
-  ConsumerState<DayDetailsScreen> createState() => _DayDetailsScreenState();
-}
-
-class _DayDetailsScreenState extends ConsumerState<DayDetailsScreen> {
-  final _scrollController = ScrollController();
-  double _headerBlur = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  void _onScroll() {
-    final px = _scrollController.offset;
-    final sigma = (px / 28).clamp(0.0, 10.0);
-    if ((sigma - _headerBlur).abs() < 0.05) return;
-    setState(() => _headerBlur = sigma);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _openEditor() async {
+  Future<void> _openEditor(BuildContext context) async {
     await Navigator.of(
       context,
-    ).push<void>(appDetailRoute(PastEntryEditScreen(dateId: widget.dateId)));
+    ).push<void>(appDetailRoute(PastEntryEditScreen(dateId: dateId)));
   }
 
   @override
-  Widget build(BuildContext context) {
-    final entryAsync = ref.watch(entryByDateIdProvider(widget.dateId));
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entryAsync = ref.watch(entryByDateIdProvider(dateId));
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(formatJournalDateId(widget.dateId)),
+        title: Text(formatJournalDateId(dateId)),
         actions: [
           TextButton.icon(
             onPressed: entryAsync.maybeWhen(
-              data: (e) => e != null ? _openEditor : null,
+              data: (e) => e != null ? () => _openEditor(context) : null,
               orElse: () => null,
             ),
             icon: const Icon(Icons.edit_outlined, size: 20),
@@ -74,7 +44,7 @@ class _DayDetailsScreenState extends ConsumerState<DayDetailsScreen> {
           error: (e, _) => AppErrorState(
             error: e,
             title: 'Couldn’t load this day',
-            onRetry: () => ref.invalidate(entryByDateIdProvider(widget.dateId)),
+            onRetry: () => ref.invalidate(entryByDateIdProvider(dateId)),
           ),
           data: (entry) {
             if (entry == null) {
@@ -94,7 +64,7 @@ class _DayDetailsScreenState extends ConsumerState<DayDetailsScreen> {
                         ),
                         const SizedBox(height: 16),
                         FilledButton.icon(
-                          onPressed: _openEditor,
+                          onPressed: () => _openEditor(context),
                           icon: const Icon(Icons.add),
                           label: const Text('Add entry'),
                         ),
@@ -104,52 +74,32 @@ class _DayDetailsScreenState extends ConsumerState<DayDetailsScreen> {
                 ),
               );
             }
-            final heroUrl = entry.imageSources.isNotEmpty
-                ? entry.imageSources.first
-                : null;
-
             return CustomScrollView(
-              controller: _scrollController,
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),
               slivers: [
-                if (heroUrl != null)
-                  SliverToBoxAdapter(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(20),
-                      ),
-                      child: SizedBox(
-                        height: 240,
-                        child: ImageFiltered(
-                          imageFilter: ImageFilter.blur(
-                            sigmaX: _headerBlur,
-                            sigmaY: _headerBlur,
-                            tileMode: TileMode.decal,
-                          ),
-                          child: EntryImage(
-                            source: heroUrl,
-                            height: 240,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorWidget: Container(
-                              height: 240,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              alignment: Alignment.center,
-                              child: const Icon(Icons.broken_image, size: 48),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
+                      if (entry.imageSources.isNotEmpty) ...[
+                        EntryPhotoCarousel(imageUrls: entry.imageSources),
+                        if (entry.imageSources.length > 1) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Swipe photos left or right',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
                       if (entry.rating > 0)
                         Row(
                           children: [
@@ -178,37 +128,6 @@ class _DayDetailsScreenState extends ConsumerState<DayDetailsScreen> {
                         style: Theme.of(context).textTheme.bodyLarge,
                       ),
                       const SizedBox(height: 16),
-                      if (entry.imageSources.length > 1) ...[
-                        Text(
-                          'More photos',
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 100,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: entry.imageSources.length - 1,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(width: 8),
-                            itemBuilder: (context, i) {
-                              final url = entry.imageSources[i + 1];
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: AspectRatio(
-                                  aspectRatio: 1,
-                                  child: EntryImage(
-                                    source: url,
-                                    fit: BoxFit.cover,
-                                    errorWidget: const Icon(Icons.broken_image),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
                       if (entry.music != null) ...[
                         Text(
                           'Music',
@@ -242,19 +161,7 @@ class _DayDetailsScreenState extends ConsumerState<DayDetailsScreen> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          leading: const Icon(Icons.location_on),
-                          title: Text(
-                            '${entry.location!.lat.toStringAsFixed(5)}, '
-                            '${entry.location!.lng.toStringAsFixed(5)}',
-                          ),
-                          subtitle: Text(
-                            'Accuracy: '
-                            '${entry.location!.accuracyMeters.toStringAsFixed(0)} m',
-                          ),
-                        ),
+                        EntryLocationChip(location: entry.location!),
                       ],
                     ]),
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:me_mine/core/formatting/journal_date_format.dart';
 import 'package:me_mine/features/analytics/domain/utils/analytics_weekly_stats.dart';
 import 'package:me_mine/features/journal/domain/entities/entry.dart';
 
@@ -19,6 +20,10 @@ Entry _entry(String dateId, int rating) {
 }
 
 void main() {
+  setUpAll(() async {
+    await initJournalDateFormatting();
+  });
+
   group('analytics rating aggregation', () {
     test('computes weekly averages and ignores unrated days', () {
       final weeks = computeWeeklyAverages(
@@ -72,6 +77,21 @@ void main() {
       expect(points.map((p) => p.label), ['8/06', '9/06', '10/06']);
       expect(points.map((p) => p.value), [2, 0, 5]);
       expect(points.map((p) => p.ratedCount), [1, 0, 1]);
+    });
+
+    test('formats month labels using the requested locale', () {
+      final points = monthlyStatsToBarPoints(
+        [
+          MonthlyRatingStats(
+            monthStart: DateTime(2026, 6, 1),
+            average: 4,
+            ratedDaysCount: 2,
+          ),
+        ],
+        locale: 'en_GB',
+      );
+
+      expect(points.single.label, 'Jun 26');
     });
   });
 }

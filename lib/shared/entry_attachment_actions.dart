@@ -47,71 +47,70 @@ Future<List<String>> pickEntryPhotoPaths(BuildContext context) async {
   }
 }
 
-Future<String?> promptForYoutubeMusic(BuildContext context) async {
-  final controller = TextEditingController();
-  try {
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        String? errorText;
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Add music'),
-              content: TextField(
-                controller: controller,
-                autofocus: true,
-                decoration: InputDecoration(
-                  labelText: 'YouTube or YouTube Music link',
-                  hintText: 'https://music.youtube.com/watch?v=...',
-                  errorText: errorText,
-                ),
-                keyboardType: TextInputType.url,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submitMusicDialog(
-                  context,
-                  controller.text,
-                  setDialogState,
-                  (value) => errorText = value,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () => _submitMusicDialog(
-                    context,
-                    controller.text,
-                    setDialogState,
-                    (value) => errorText = value,
-                  ),
-                  child: const Text('Add'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  } finally {
-    controller.dispose();
-  }
+Future<String?> promptForYoutubeMusic(BuildContext context) {
+  return showDialog<String>(
+    context: context,
+    builder: (context) => const _AddMusicDialog(),
+  );
 }
 
-void _submitMusicDialog(
-  BuildContext context,
-  String input,
-  StateSetter setDialogState,
-  ValueChanged<String?> setError,
-) {
-  final trimmed = input.trim();
-  if (extractYoutubeVideoId(trimmed) == null) {
-    setDialogState(() {
-      setError('Paste a valid YouTube or YouTube Music link.');
-    });
-    return;
+class _AddMusicDialog extends StatefulWidget {
+  const _AddMusicDialog();
+
+  @override
+  State<_AddMusicDialog> createState() => _AddMusicDialogState();
+}
+
+class _AddMusicDialogState extends State<_AddMusicDialog> {
+  late final TextEditingController _controller;
+  String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
   }
-  Navigator.of(context).pop(trimmed);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final trimmed = _controller.text.trim();
+    if (extractYoutubeVideoId(trimmed) == null) {
+      setState(() {
+        _errorText = 'Paste a valid YouTube or YouTube Music link.';
+      });
+      return;
+    }
+    Navigator.of(context).pop(trimmed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Add music'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: 'YouTube or YouTube Music link',
+          hintText: 'https://music.youtube.com/watch?v=...',
+          errorText: _errorText,
+        ),
+        keyboardType: TextInputType.url,
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Add')),
+      ],
+    );
+  }
 }

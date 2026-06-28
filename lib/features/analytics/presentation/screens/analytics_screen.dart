@@ -58,18 +58,26 @@ List<Entry> _entriesLast30Days(List<Entry> all, DateTime now) {
 List<RatingBarPoint> _pointsForGranularity(
   List<Entry> entries,
   AnalyticsGranularity g,
-  DateTime now,
-) {
+  DateTime now, {
+  String? locale,
+}) {
   switch (g) {
     case AnalyticsGranularity.day:
-      return computeDailyRatings(entries, dayCount: 30, now: now);
+      return computeDailyRatings(
+        entries,
+        dayCount: 30,
+        now: now,
+        locale: locale,
+      );
     case AnalyticsGranularity.week:
       return weeklyStatsToBarPoints(
         computeWeeklyAverages(entries, weekCount: 12, now: now),
+        locale: locale,
       );
     case AnalyticsGranularity.month:
       return monthlyStatsToBarPoints(
         computeMonthlyAverages(entries, monthCount: 12, now: now),
+        locale: locale,
       );
   }
 }
@@ -120,8 +128,14 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       ),
       data: (entries) {
         final now = DateTime.now();
+        final locale = journalDisplayLocale();
         final last30 = _entriesLast30Days(entries, now);
-        final points = _pointsForGranularity(entries, _granularity, now);
+        final points = _pointsForGranularity(
+          entries,
+          _granularity,
+          now,
+          locale: locale,
+        );
 
         final rated = last30.where((e) => e.rating > 0).toList();
         final count = rated.length;
@@ -234,7 +248,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               for (final e in last30)
                 ListTile(
                   dense: true,
-                  title: Text(formatJournalDateId(e.dateId)),
+                  title: Text(formatJournalDateId(e.dateId, locale: locale)),
                   subtitle: e.text.isNotEmpty
                       ? Text(
                           e.text.length > 60
@@ -323,7 +337,7 @@ class _HorizontalScrollableRatingChartState
   }
 }
 
-class _PeriodCardsSection extends ConsumerWidget {
+class _PeriodCardsSection extends ConsumerStatefulWidget {
   const _PeriodCardsSection({
     required this.title,
     required this.ranges,
@@ -335,28 +349,148 @@ class _PeriodCardsSection extends ConsumerWidget {
   final PeriodType periodType;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_PeriodCardsSection> createState() =>
+      _PeriodCardsSectionState();
+}
+
+class _PeriodCardsSectionState extends ConsumerState<_PeriodCardsSection>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  late final AnimationController _expandCtrl;
+  late final Animation<double> _expandCurve;
+
+  @override
+  void initState() {
+    super.initState();
+    _expandCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _expandCurve = CurvedAnimation(
+      parent: _expandCtrl,
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _expandCtrl.dispose();
+    super.dispose();
+  }
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+    if (_expanded) {
+      _expandCtrl.forward(from: 0);
+    } else {
+      _expandCtrl.reverse();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authStateProvider).value;
     if (user == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        GridView.count(
-          crossAxisCount: 2,
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          childAspectRatio: 1.8,
-          children: [
-            for (final r in ranges)
-              _PeriodCard(range: r, periodType: periodType),
-          ],
+        Material(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: AppShape.radiusMd,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _toggle,
+            borderRadius: AppShape.radiusMd,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Text(widget.title, style: theme.textTheme.titleMedium),
+                  const Spacer(),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeOut,
+                    child: Icon(
+                      Icons.expand_more,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        ClipRect(
+          child: SizeTransition(
+            axisAlignment: -1,
+            sizeFactor: _expandCurve,
+            child: FadeTransition(
+              opacity: _expandCurve,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.8,
+                  children: [
+                    for (var i = 0; i < widget.ranges.length; i++)
+                      _StaggeredPeriodCard(
+                        index: i,
+                        animation: _expandCurve,
+                        child: _PeriodCard(
+                          range: widget.ranges[i],
+                          periodType: widget.periodType,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _StaggeredPeriodCard extends StatelessWidget {
+  const _StaggeredPeriodCard({
+    required this.index,
+    required this.animation,
+    required this.child,
+  });
+
+  final int index;
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, child) {
+        final start = (index * 0.12).clamp(0.0, 0.55);
+        final end = (start + 0.55).clamp(0.0, 1.0);
+        final t = Curves.easeOutCubic.transform(
+          Interval(start, end).transform(animation.value),
+        );
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, -28 * (1 - t)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
@@ -388,6 +522,8 @@ class _PeriodCard extends ConsumerWidget {
         ? 'Tap to generate'
         : 'No data';
 
+    final locale = journalDisplayLocale();
+
     return InkWell(
       borderRadius: AppShape.radiusMd,
       onTap: () {
@@ -407,13 +543,13 @@ class _PeriodCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              formatJournalDateId(range.fromDateId),
+              formatJournalDateId(range.fromDateId, locale: locale),
               style: Theme.of(context).textTheme.labelLarge,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
-              formatJournalDateId(range.toDateId),
+              formatJournalDateId(range.toDateId, locale: locale),
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

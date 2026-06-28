@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 import 'app_shape.dart';
@@ -36,9 +35,10 @@ class AppTheme {
       colorScheme: colorScheme,
       splashFactory: InkSparkle.splashFactory,
     );
-    final textTheme = GoogleFonts.interTextTheme(
-      base.textTheme,
-    ).apply(bodyColor: AppColors.ink, displayColor: AppColors.ink);
+    final textTheme = base.textTheme.apply(
+      bodyColor: AppColors.ink,
+      displayColor: AppColors.ink,
+    );
 
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.bone,
@@ -214,7 +214,7 @@ class AppTheme {
       colorScheme: colorScheme,
       splashFactory: InkSparkle.splashFactory,
     );
-    final textTheme = GoogleFonts.interTextTheme(base.textTheme).apply(
+    final textTheme = base.textTheme.apply(
       bodyColor: colorScheme.onSurface,
       displayColor: colorScheme.onSurface,
     );

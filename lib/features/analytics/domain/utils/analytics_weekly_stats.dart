@@ -1,3 +1,6 @@
+import 'package:intl/intl.dart';
+
+import '../../../../core/formatting/journal_date_format.dart';
 import '../../../journal/domain/entities/entry.dart';
 import '../../../journal/domain/utils/journal_date_utils.dart';
 
@@ -125,10 +128,8 @@ List<WeeklyRatingStats> computeWeeklyAverages(
   ];
 }
 
-String shortWeekLabel(DateTime weekStartMonday) {
-  final m = weekStartMonday.month;
-  final d = weekStartMonday.day;
-  return '$d/${m.toString().padLeft(2, '0')}';
+String shortWeekLabel(DateTime weekStartMonday, {String? locale}) {
+  return DateFormat('d/MM', resolveJournalLocale(locale)).format(weekStartMonday);
 }
 
 /// One calendar day per bar: rating that day, or `0` if no entry / no stars.
@@ -136,6 +137,7 @@ List<RatingBarPoint> computeDailyRatings(
   List<Entry> entries, {
   int dayCount = 30,
   DateTime? now,
+  String? locale,
 }) {
   final end = dateOnly(now ?? DateTime.now());
   final days = <DateTime>[
@@ -154,7 +156,7 @@ List<RatingBarPoint> computeDailyRatings(
         final id = JournalDateUtils.dateId(d);
         final r = ratingByDateId[id];
         return RatingBarPoint(
-          label: '${d.day}/${d.month.toString().padLeft(2, '0')}',
+          label: DateFormat('d/MM', resolveJournalLocale(locale)).format(d),
           value: r != null ? r.toDouble() : 0,
           ratedCount: r != null ? 1 : 0,
         );
@@ -215,41 +217,32 @@ List<MonthlyRatingStats> computeMonthlyAverages(
   ];
 }
 
-String shortMonthLabel(DateTime monthStart) {
-  const names = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  final y = monthStart.year % 100;
-  return '${names[monthStart.month - 1]} $y';
+String shortMonthLabel(DateTime monthStart, {String? locale}) {
+  return DateFormat('MMM yy', resolveJournalLocale(locale)).format(monthStart);
 }
 
-List<RatingBarPoint> weeklyStatsToBarPoints(List<WeeklyRatingStats> weeks) {
+List<RatingBarPoint> weeklyStatsToBarPoints(
+  List<WeeklyRatingStats> weeks, {
+  String? locale,
+}) {
   return [
     for (final w in weeks)
       RatingBarPoint(
-        label: shortWeekLabel(w.weekStartMonday),
+        label: shortWeekLabel(w.weekStartMonday, locale: locale),
         value: w.average,
         ratedCount: w.ratedDaysCount,
       ),
   ];
 }
 
-List<RatingBarPoint> monthlyStatsToBarPoints(List<MonthlyRatingStats> months) {
+List<RatingBarPoint> monthlyStatsToBarPoints(
+  List<MonthlyRatingStats> months, {
+  String? locale,
+}) {
   return [
     for (final m in months)
       RatingBarPoint(
-        label: shortMonthLabel(m.monthStart),
+        label: shortMonthLabel(m.monthStart, locale: locale),
         value: m.average,
         ratedCount: m.ratedDaysCount,
       ),
